@@ -23,8 +23,9 @@ def extract_all_tables(driver, ticker):
 
 if __name__ == '__main__':
 
-    browser = selenium_funcs.start_driver(base_page="https://www.macrotrends.net/stocks/charts/TSLA/tesla/balance-sheet?freq=Q")
+    browser = selenium_funcs.start_driver(base_page="https://www.macrotrends.net/stocks/charts/TSLA/tesla/balance-sheet?freq=Q",
+                                          adblock_path="static/adblock4.43.0_0.crx")
     selenium_funcs.accept_cookies(browser)
 
-
+    selenium_funcs.parse_table(browser)
     t = extract_all_tables(browser, "V")

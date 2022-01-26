@@ -9,25 +9,29 @@ from utilities import chrome_appdata_folder
 from exceptions import TableParsingError
 
 
-def start_driver(app_name="macrotrends", download_folder=None, base_page=None):
+def start_driver(app_name="macrotrends", download_folder=None, base_page=None, adblock_path=None):
     """Start the driver. Optionally a download folder can be supplied."""
     # Initialise the chrome options
-    chromeOptions = webdriver.ChromeOptions()
+    chrome_options = webdriver.ChromeOptions()
     prefs = {"profile.default_content_setting_values.notifications": 2} # Disable notifications
 
     # Get the appData folder to store the user
     app_data = chrome_appdata_folder()
-    chromeOptions.add_argument(f"user-data-dir={app_data}/{app_name}/profile")
+    chrome_options.add_argument(f"user-data-dir={app_data}/{app_name}/profile")
+
+    # Add adblock
+    if adblock_path:
+        chrome_options.add_extension(adblock_path)
 
     #Checks for download folder
     if download_folder:
         prefs["download.default_directory"] = download_folder
 
     # Apply the options
-    chromeOptions.add_experimental_option("prefs", prefs)
+    chrome_options.add_experimental_option("prefs", prefs)
 
     # Initialize the driver
-    driver = webdriver.Chrome(ChromeDriverManager().install(), options=chromeOptions) 
+    driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options) 
     driver.implicitly_wait(5)
 
     # Go to the base page if provided
@@ -86,8 +90,8 @@ def scroll_bar(driver, distance=150):
     try:
         ActionChains(driver).click_and_hold(slider).move_by_offset(distance, 0).release().perform()
         return
-    except MoveTargetOutOfBoundsException:
-
+    except MoveTargetOutOfBoundsException as e:
+        print(e)
         if distance < 0:
             for _ in range(distance):
                 left_button = driver.find_element(By.ID, "jqxScrollBtnUphorizontalScrollBarjqxgrid")
@@ -176,6 +180,6 @@ def parse_table(driver):
         elif scrolled_tries >= max_scroll_tries:
             raise(TableParsingError("Not all the gricells could be found."))
 
-        scroll_bar(driver, 150)
+        scroll_bar(driver, 200)
 
     return z_index_dict, z_index_dict_header

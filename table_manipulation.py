@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 def reconstruct_table(gricells_dict, headers_dict):
     """Takes two dictionaries containing the data and the headers and
@@ -22,3 +23,25 @@ def reconstruct_table(gricells_dict, headers_dict):
         header_list.append(v)
     
     return pd.DataFrame(list_df, columns=header_list)
+
+
+def clean_table(df):
+    """Take the table and clean it."""
+    # First col to index
+    df.index = df.iloc[:,0]
+    df = df.drop(df.columns[0], axis=1)
+    
+    # Remove empty cols
+    df = df.replace(r'^\s*-*$', np.nan, regex=True)
+    df = df.dropna(how='all', axis=1)
+    
+    # Remove the dollar symbol
+    df = df.replace({'\$':'', ',':''}, regex = True)
+    
+    # Transform to number
+    df.apply(pd.to_numeric)
+
+    return df
+
+# df = list(t.values())[0]
+# x = clean_table(df)
