@@ -14,10 +14,13 @@ def extract_all_tables(driver, ticker):
 
         selenium_funcs.choose_subtab(driver, subtab)
         selenium_funcs.quarterly(driver)
-        g,h = selenium_funcs.parse_table(driver)
+        g,h = selenium_funcs.parse_table_bs(driver)
         tables[subtab] = tm.reconstruct_table(g, h)
 
-    return tables
+    final_table = tm.combine_financial_tables(tables)
+    tm.add_ticker_col(final_table, ticker)
+
+    return final_table
 
 
 
@@ -28,4 +31,36 @@ if __name__ == '__main__':
     selenium_funcs.accept_cookies(browser)
 
     #selenium_funcs.parse_table(browser)
-    t = extract_all_tables(browser, "V")
+    #t = extract_all_tables(browser, "V")
+    x = extract_all_tables(browser, "V")
+    # selenium_funcs.find_ticker(browser, "V")
+    # g,h = selenium_funcs.parse_table_bs(browser)
+    # t = tm.reconstruct_table(g, h)
+
+    
+    
+# from timeit import Timer
+# import re
+# style = "left: 790px; z-index: 738; width: 100px;"
+# table = browser.find_element(By.ID, "contentjqxgrid")
+# def f2(table):
+#     return WebDriverWait(table, 0.2).until(
+#             EC.presence_of_all_elements_located((By.XPATH, "./div[2]/div//div[@role='gridcell']"))
+#             )
+
+# def f1(table):
+#     return WebDriverWait(table, 0.2).until(
+#             EC.presence_of_all_elements_located((By.XPATH, ".//div[@role='gridcell']"))
+#             )
+# gridcell = browser.find_element_by_xpath("/html/body/div[2]/div[3]/div[4]/div/div/div[4]/div[2]/div/div[2]/div[6]")
+# def f2(element):
+#     return element.get_attribute('innerHTML')
+
+# def f1(element):
+#     return element.text
+
+# t = Timer(lambda: f1(table))
+# print(t.timeit(number=100))
+
+# t = Timer(lambda: f2(table))
+# print(t.timeit(number=100))
