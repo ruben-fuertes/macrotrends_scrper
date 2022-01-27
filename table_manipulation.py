@@ -37,11 +37,45 @@ def clean_table(df):
     
     # Remove the dollar symbol
     df = df.replace({'\$':'', ',':''}, regex = True)
-    
+
+    # Transpose
+    df = df.T
+
     # Transform to number
-    df.apply(pd.to_numeric)
+    df = df.apply(pd.to_numeric)
 
     return df
 
-# df = list(t.values())[0]
-# x = clean_table(df)
+
+def combine_financial_tables(tables_dict):
+    """Take the dictionary containing the tables:
+        - Balance Sheet
+        - Cash Flow Statement
+        - Income Statement
+        - Key Financial Ratios
+    adjust the values and combine them.
+    """
+
+    for k, v in tables_dict.items():
+        # Clean the table
+        table = clean_table(v)
+        
+        # Correct for millions
+        if k == "Income Statement":
+            # Avoid the EPS columns
+            no_eps_cols = [col for col in table.columns
+                           if 'EPS' not in col]
+            table[no_eps_cols] = table[no_eps_cols].mul(100000)
+            return table
+            
+        # Add info about the dates
+    # df['quarter'] = pd.PeriodIndex(df.index, freq='Q')
+    # df['year'] = pd.PeriodIndex(df.index, freq='Y')
+    # df['quarter_number'] = df.quarter.dt.quarter
+
+
+# if __name__ == '__main__':
+#     df = clean_table(list(t.values())[0])
+#     df = combine_financial_tables(t)
+# df.to_csv('test.csv')
+# t["Balance Sheet"].to_csv('test2.csv')

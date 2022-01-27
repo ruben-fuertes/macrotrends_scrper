@@ -27,5 +27,5 @@ if __name__ == '__main__':
                                           adblock_path="static/adblock4.43.0_0.crx")
     selenium_funcs.accept_cookies(browser)
 
-    selenium_funcs.parse_table(browser)
+    #selenium_funcs.parse_table(browser)
     t = extract_all_tables(browser, "V")
