@@ -1,3 +1,4 @@
+import re
 import pandas as pd
 import numpy as np
 
@@ -89,6 +90,15 @@ def combine_financial_tables(tables_dict):
 def add_ticker_col(table, ticker):
     """Adds a column with the ticker."""
     table["ticker"] = ticker
+
+
+def cleanse_cols(df):
+    """Take a df and clean the columns."""
+    cols  = df.columns.str.replace(r"\s|-|/", "_", regex=True)
+    cols = cols.str.replace(r"\(|\)", "", regex=True)
+    cols = cols.str.replace(r"__+", "_", regex=True)
+    cols = cols.str.lower()
+    df.columns = cols
 
 # if __name__ == '__main__':
 # #     df = clean_table(list(t.values())[0])

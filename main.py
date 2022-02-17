@@ -19,6 +19,7 @@ def extract_all_tables(driver, ticker):
 
     final_table = tm.combine_financial_tables(tables)
     tm.add_ticker_col(final_table, ticker)
+    tm.cleanse_cols(final_table)
 
     return final_table
 
