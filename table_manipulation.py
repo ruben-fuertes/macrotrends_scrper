@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from dateutil.parser import parse
 
 def reconstruct_table(gricells_dict, headers_dict):
     """Takes two dictionaries containing the data and the headers and
@@ -91,13 +92,27 @@ def add_ticker_col(table, ticker):
     table["ticker"] = ticker
 
 
-def cleanse_cols(df):
+def clean_cols(df):
     """Take a df and clean the columns."""
     cols  = df.columns.str.replace(r"\s|-|/|,|&", "_", regex=True)
     cols = cols.str.replace(r"\(|\)", "", regex=True)
     cols = cols.str.replace(r"__+", "_", regex=True)
     cols = cols.str.lower()
     df.columns = cols
+
+
+def postprocess_tables(tables, ticker):
+    """Join the tables, add info about the ticker and
+    clean the column names."""
+    final_table = combine_financial_tables(tables)
+    add_ticker_col(final_table, ticker)
+    clean_cols(final_table)
+
+
+def extract_yq(date_str):
+    """Take a date as a string and return the year and quarter as a tuple."""
+    return parse(date_str).year, (parse(date_str).month-1)//3 + 1
+
 
 # if __name__ == '__main__':
 # #     df = clean_table(list(t.values())[0])

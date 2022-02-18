@@ -1,5 +1,6 @@
 import json
 from sqlalchemy import create_engine
+from sqlalchemy.sql import text
 import paramiko
 import pandas as pd
 from sshtunnel import SSHTunnelForwarder
@@ -10,7 +11,8 @@ class ConnexionHandler:
     """Class to handle the connexion to Mysql database."""
     def __init__(self, cred_json_path=JSON_FILE):
         self.read_cred(cred_json_path)
-
+        self.mypkey = paramiko.RSAKey.from_private_key_file(self.ssh_cred["key_path"],
+                                               self.ssh_cred["key_password"])
 
     def read_cred(self, cred_json_path):
         """Parse the json file with the credentials."""
@@ -31,12 +33,10 @@ class ConnexionHandler:
         """Take the credentials and run the query using a connection.
         It takes different values for the query_type:
             -"r" for reading
-            -"w" for writting """
-        mypkey = paramiko.RSAKey.from_private_key_file(self.ssh_cred["key_path"],
-                                                       self.ssh_cred["key_password"])
-        with SSHTunnelForwarder((self.ssh_cred["host"], 443),
+            -"e" for executing """
+        with SSHTunnelForwarder((self.ssh_cred["host"], self.ssh_cred["port"]),
                                   ssh_username=self.ssh_cred["user"],
-                                  ssh_pkey=mypkey,
+                                  ssh_pkey=self.mypkey,
                                   remote_bind_address=(self.mysql_cred["host"],
                                                        self.mysql_cred["port"])
                                   ) as tunnel:
@@ -51,17 +51,15 @@ class ConnexionHandler:
             if query_type == 'r':
                 return pd.read_sql_query(query, cnx)
 
-            if query_type == 'w':
-                return cnx.execute(query)
+            if query_type == 'e':
+                return cnx.execute(text(query).execution_options(autocommit=True))
 
 
     def df_to_database(self, df, sql_table, if_exists="fail"):
         """Take the credentials and return a connection."""
-        mypkey = paramiko.RSAKey.from_private_key_file(self.ssh_cred["key_path"],
-                                                       self.ssh_cred["key_password"])
-        with SSHTunnelForwarder((self.ssh_cred["host"], 443),
+        with SSHTunnelForwarder((self.ssh_cred["host"], self.ssh_cred["port"]),
                                   ssh_username=self.ssh_cred["user"],
-                                  ssh_pkey=mypkey,
+                                  ssh_pkey=self.mypkey,
                                   remote_bind_address=(self.mysql_cred["host"],
                                                        self.mysql_cred["port"])
                                   ) as tunnel:

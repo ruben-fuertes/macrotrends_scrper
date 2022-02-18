@@ -1,11 +1,13 @@
 import selenium_funcs
 import table_manipulation as tm
 
-def extract_all_tables(driver, ticker):
-    """Extract and process all tables for a ticker."""
-    selenium_funcs.find_ticker(driver, ticker)
 
-    tables  = {}
+
+
+
+def extract_all_tables(driver):
+    """Extract and process all tables for the current page."""
+    tables = {}
 
     for subtab in ("Income Statement", 
                    "Balance Sheet", 
@@ -17,11 +19,8 @@ def extract_all_tables(driver, ticker):
         g,h = selenium_funcs.parse_table_bs(driver)
         tables[subtab] = tm.reconstruct_table(g, h)
 
-    final_table = tm.combine_financial_tables(tables)
-    tm.add_ticker_col(final_table, ticker)
-    tm.cleanse_cols(final_table)
+    return tables
 
-    return final_table
 
 
 
@@ -34,7 +33,7 @@ if __name__ == '__main__':
     #selenium_funcs.parse_table(browser)
     #t = extract_all_tables(browser, "V")
     x = extract_all_tables(browser, "V")
-    # selenium_funcs.find_ticker(browser, "V")
+    selenium_funcs.find_ticker(browser, "V")
     # g,h = selenium_funcs.parse_table_bs(browser)
     # t = tm.reconstruct_table(g, h)
 

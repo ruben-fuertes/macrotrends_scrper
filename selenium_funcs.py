@@ -120,86 +120,6 @@ def continue_adbolocking(driver):
         pass
 
 
-def parse_table(driver):
-    """Each value in the table has a Z-index. This index starts at the bottom right of the table and
-    increases leftwards first and upwards second. 
-    Each row is identified by the role=row.
-    It is possible to compute the column number by taking the max Z-index and dividing it by
-    the number of rows.
-    The strategy will be to extract all the z-index into a Dict and then distribute them into a matrix
-    based on the number of columns and rows."""
-
-    # Find the table
-    table = driver.find_element(By.ID, "contentjqxgrid")
-
-    # Find header
-    header = table.find_element(By.CLASS_NAME, "jqx-grid-header")
-    # Loop all the elements of the table to extract their value
-    # Assign the value to a dict z-index: "value"
-    # When there are no more z-index, scroll to the right
-    z_index_dict = {}
-    z_index_dict_header = {}
-    max_scroll_tries = 5
-    scrolled_tries = 0
-    #driver.implicitly_wait(0.5)
-    while True:
-        gridcell_number = len(z_index_dict)
-        for gridcell in  WebDriverWait(table, 0.2).until(
-                EC.presence_of_all_elements_located((By.XPATH, ".//div[@role='gridcell']"))
-                ):
-            # Extract the z-index from the style of the girdcell
-            #z_index = int(re.search(r'z-index:\s*(\d+)', gridcell.get_attribute("style")).group(1))
-            z_index = [int(style.split(':')[1])
-                       for style in gridcell.get_attribute("style").split(';') 
-                       if style.strip().startswith("z-index")
-                       ][0]
-
-            if z_index in z_index_dict:
-                continue
-            value = gridcell.text
-
-            # Fill the dict
-            z_index_dict[z_index] = value
-        # Extract info for the header
-        for header in WebDriverWait(table, 0.2).until(
-                EC.presence_of_all_elements_located((By.XPATH, ".//div[@role='columnheader']"))
-                ):
-            #z_index = int(re.search(r'z-index:\s*(\d+)', gridcell.get_attribute("style")).group(1))
-            z_index = [int(style.split(':')[1])
-                                    for style in header.get_attribute("style").split(';') 
-                                    if style.strip().startswith("z-index")
-                                    ][0]
-            if z_index in z_index_dict_header:
-                continue
-            
-            # Extract the value
-            value = header.text
-            # Fill the dict
-            z_index_dict_header[z_index] = value
-
-        # Check if in the last iteration any gridcell was added
-        if len(z_index_dict) == gridcell_number:
-            scrolled_tries += 1
-            # Try to press the continue adblocking
-            continue_adbolocking(driver)
-        else:
-            scrolled_tries = 0
-
-        # Check if all the z_index are in the dictionary
-        if  max(z_index_dict.keys()) == len(z_index_dict):
-            break
-
-        # Check if the scroll tries expired and not all data was found
-        elif scrolled_tries >= max_scroll_tries:
-            raise(TableParsingError("Not all the gricells could be found."))
-
-        scroll_bar(driver, 200)
-
-    return z_index_dict, z_index_dict_header
-
-
-
-
 def parse_table_bs(driver):
     """Each value in the table has a Z-index. This index starts at the bottom right of the table and
     increases leftwards first and upwards second. 
@@ -279,3 +199,51 @@ def parse_table_bs(driver):
         scroll_bar(driver, 200)
 
     return z_index_dict, z_index_dict_header
+
+
+def exctract_last_date(driver):
+    """Exctract the last date in the columns of the table.
+    Extract the z-index of all the columnheader elements,
+    find the max(z-index) and subtract 2 to get the z-index
+    of the first column. Then, parse the contents to extract the
+    date."""
+    z_index_dict_header = {}
+    header = WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.CLASS_NAME , "jqx-grid-header")))
+    head_soup = BeautifulSoup(header.get_attribute('innerHTML'), 'lxml')
+
+    for header in head_soup.find_all(role="columnheader"):
+        z_index = [int(style.split(':')[1])
+                                for style in header["style"].split(';') 
+                                if style.strip().startswith("z-index")
+                                ][0]
+
+        # Extract the value
+        value = header.text
+        # Fill the dict
+        z_index_dict_header[z_index] = value
+
+    return z_index_dict_header[max(z_index_dict_header)-2]
+
+
+def input_ticker(driver, ticker):
+    """Input the ticker into the search box."""
+    search_box = WebDriverWait(driver, 1).until(
+        EC.presence_of_element_located((By.ID, "jqxInput"))
+    )
+    search_box.send_keys(ticker)
+
+
+def extract_tickers(driver):
+    """Extract all the tickers from the ticker box."""
+    # Loop the child elements that appeared
+    tickers = {}
+    popup = WebDriverWait(driver, 1).until(
+        EC.presence_of_element_located((By.ID, "jqxInput_popup"))
+    )
+    for li in popup.find_elements(By.XPATH, "./li"):
+        data_value = li.get_attribute("data-value")
+        li_ticker = data_value.split("/")[0]
+        tickers[li_ticker] = data_value.split("/")[1]
+
+    return tickers

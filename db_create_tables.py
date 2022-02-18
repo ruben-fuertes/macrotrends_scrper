@@ -105,6 +105,24 @@ CREATE TABLE macro_trends (
 ) DEFAULT CHARSET=utf8mb4
 """
 
+tickers_table_query = """
+CREATE TABLE ticker (
+    ticker VARCHAR(12) NOT NULL,
+    ticker_desc VARCHAR(100),
+    PRIMARY KEY (ticker)
+    ) DEFAULT CHARSET=utf8mb4
+"""
+
+letter_table_query = """
+CREATE TABLE letter_combinations (
+  letter_combination VARCHAR(3) NOT NULL,
+  checked SMALLINT,
+  PRIMARY KEY (letter_combination)
+  )
+"""
+
 if __name__ == '__main__':
     con_han = ConnexionHandler()
-    con_han.query_database(main_table_query, query_type='w')
+    con_han.query_database(main_table_query, query_type='e')
+    con_han.query_database(tickers_table_query, query_type='e')
+    con_han.query_database(letter_table_query, query_type='e')
