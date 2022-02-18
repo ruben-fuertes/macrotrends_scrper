@@ -256,7 +256,6 @@ def parse_table_bs(driver):
             
             # Extract the value
             value = header.text
-            print(z_index, value)
             # Fill the dict
             z_index_dict_header[z_index] = value
 

@@ -1,4 +1,3 @@
-import re
 import pandas as pd
 import numpy as np
 
@@ -94,7 +93,7 @@ def add_ticker_col(table, ticker):
 
 def cleanse_cols(df):
     """Take a df and clean the columns."""
-    cols  = df.columns.str.replace(r"\s|-|/", "_", regex=True)
+    cols  = df.columns.str.replace(r"\s|-|/|,|&", "_", regex=True)
     cols = cols.str.replace(r"\(|\)", "", regex=True)
     cols = cols.str.replace(r"__+", "_", regex=True)
     cols = cols.str.lower()

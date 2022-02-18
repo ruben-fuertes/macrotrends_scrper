@@ -52,7 +52,7 @@ class ConnexionHandler:
                 return pd.read_sql_query(query, cnx)
 
             if query_type == 'w':
-                return cnx.cursor().execute(query)
+                return cnx.execute(query)
 
 
     def df_to_database(self, df, sql_table, if_exists="fail"):
