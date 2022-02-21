@@ -92,4 +92,24 @@ def ticker_processed(ticker, year, quarter):
     if con_han.query_database(query, query_type='r').empty:
         return False
     return True
-    
+
+
+def last_processed_date(ticker):
+    """Extract the last processed date for the ticker."""
+    con_han = ConnexionHandler()
+    query =f"""
+    SELECT ticker, year, quarter_number
+    FROM macro_trends
+    WHERE
+    ticker='{ticker}'
+    ORDER BY
+    year DESC, quarter_number DESC
+    LIMIT 1
+    """
+
+    df = con_han.query_database(query, query_type='r')
+
+    if df.empty:
+        return 0, 0
+
+    return df.year[0], df.quarter_number[0]

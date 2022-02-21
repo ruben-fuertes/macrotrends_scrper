@@ -5,6 +5,10 @@ from dateutil.parser import parse
 def reconstruct_table(gricells_dict, headers_dict):
     """Takes two dictionaries containing the data and the headers and
     reconstruct the table."""
+    # Adjust values of the gridcells_dict
+    min_index = min(gricells_dict)
+    gricells_dict = {k - min_index + 1:v for k,v in gricells_dict.items()}
+
     # Compute number of col and row
     col_n = len(headers_dict)
     row_n = int(len(gricells_dict) / col_n)

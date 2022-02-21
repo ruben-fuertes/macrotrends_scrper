@@ -114,11 +114,10 @@ def scroll_bar(driver, distance=150):
 def continue_adbolocking(driver):
     """Press the continue adblocking."""
     try:
-        WebDriverWait(driver, 1).until(
+        WebDriverWait(driver, 0.2).until(
             EC.presence_of_element_located((By.XPATH, "//button[contains(text(), 'Continue without disabling')]"))
         ).click()
     except TimeoutException:
-        print("No accept adblocker button.")
         pass
 
 
@@ -135,7 +134,7 @@ def parse_table_bs(driver):
     # When there are no more z-index, scroll to the right
     z_index_dict = {}
     z_index_dict_header = {}
-    max_scroll_tries = 5
+    max_scroll_tries = 2
     scrolled_tries = 0
 
     while True:
@@ -152,7 +151,7 @@ def parse_table_bs(driver):
         # Pass the table content to beautifulsoup
         tab_soup = BeautifulSoup(table.get_attribute('innerHTML'), 'lxml')
         head_soup = BeautifulSoup(header.get_attribute('innerHTML'), 'lxml')
-        for gridcell in  tab_soup.find_all(role="gridcell"):
+        for gridcell in tab_soup.find_all(role="gridcell"):
             # Extract the z-index from the style of the girdcell
             #z_index = int(re.search(r'z-index:\s*(\d+)', gridcell.get_attribute("style")).group(1))
             z_index = [int(style.split(':')[1])
@@ -196,7 +195,7 @@ def parse_table_bs(driver):
         # Check if the scroll tries expired and not all data was found
         elif scrolled_tries >= max_scroll_tries:
             return z_index_dict, z_index_dict_header
-            raise(TableParsingError("Not all the gricells could be found."))
+            # raise(TableParsingError("Not all the gricells could be found."))
 
         scroll_bar(driver, 200)
 
@@ -257,4 +256,21 @@ def ticker_url(driver, ticker):
     driver.get(f"https://www.macrotrends.net/stocks/charts/{ticker}//income-statement?freq=Q")
     if "Error Code: 404" in driver.page_source:
         return False
+    if not driver.current_url.endswith("?freq=Q"):
+        driver.get(driver.current_url + "?freq=Q")
     return True
+
+
+def check_for_empty_table(driver):
+    """Check if the current page has an empty table."""
+    # Find the table
+    table = WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.ID, "contentjqxgrid")))
+
+    # Pass the table content to beautifulsoup
+    tab_soup = BeautifulSoup(table.get_attribute('innerHTML'), 'lxml')
+
+    if len(tab_soup.find_all(role="gridcell")) == 0:
+        return True
+
+    return False

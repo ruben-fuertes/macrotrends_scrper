@@ -1,6 +1,9 @@
-import selenium_funcs
+from sqlalchemy.exc import IntegrityError
+import selenium_funcs as sf
 import db
 import table_manipulation as tm
+from utilities import setup_loggers
+
 
 def extract_all_tables(driver):
     """Extract and process all tables for the current page."""
@@ -11,51 +14,64 @@ def extract_all_tables(driver):
                    "Cash Flow Statement",
                    "Key Financial Ratios"):
 
-        selenium_funcs.choose_subtab(driver, subtab)
-        selenium_funcs.quarterly(driver)
-        g,h = selenium_funcs.parse_table_bs(driver)
+        sf.choose_subtab(driver, subtab)
+        sf.quarterly(driver)
+        g,h = sf.parse_table_bs(driver)
         tables[subtab] = tm.reconstruct_table(g, h)
 
     return tables
 
 
-def main():
-    browser = selenium_funcs.start_driver(base_page="https://www.macrotrends.net/stocks/charts/TSLA/tesla/balance-sheet?freq=Q",
-                                          adblock_path="static/adblock4.43.0_0.crx")
+def main(driver):
+    log1,log2 = setup_loggers()
+
     cnx = db.ConnexionHandler()
-    selenium_funcs.accept_cookies(browser)
+    sf.accept_cookies(driver)
     tickers = set(db.get_tickers().ticker)
 
     for ticker in tickers:
-        if not selenium_funcs.ticker_url(browser, ticker):
+        log1.info(f"Processing ticker: {ticker}")
+        if not sf.ticker_url(driver, ticker):
+            log1.info("Skpipping: ticker not in macrotrends.")
             continue
-        last_date = selenium_funcs. exctract_last_date(browser)
-        year, quarter = tm.extract_yq(last_date)
-        
-        if not db.ticker_processed(ticker, year, quarter):
-            t = tm.postprocess_tables(extract_all_tables(browser), ticker)
-            cnx.df_to_database(t, 'macro_trends', if_exists='append')
-            
-        break
-        
+        elif sf.check_for_empty_table(driver):
+            log1.info("Skpipping: ticker has an empty table in macrotrends.")
+            continue
+
+        last_date = tm.extract_yq(sf.exctract_last_date(driver))
+        last_processed = db.last_processed_date(ticker)
+
+        if not last_date == last_processed:
+            t = tm.postprocess_tables(extract_all_tables(driver), ticker)
+            if last_processed != (0, 0):
+                # Filter the df to keep only the additions
+                date_filter = last_processed[0] * 100 + last_processed[1]
+                t = t[t.year.dt.year * 100 + t.quarter_number > date_filter]
+
+            try:
+                cnx.df_to_database(t, 'macro_trends', if_exists='append')
+                log1.info("Data inserted into the DB.")
+            except IntegrityError:
+                log2.exception(f"Processing ticker: {ticker} rised an error.")
+                log1.error(f"Processing ticker: {ticker} rised an error.")
+        else:
+            log1.info("Skipping: it's already in the DB.")
 
 
 if __name__ == '__main__':
-
-    
-    browser = selenium_funcs.start_driver(base_page="https://www.macrotrends.net/stocks/charts/TSLA/tesla/balance-sheet?freq=Q",
+    browser = sf.start_driver(base_page="https://www.macrotrends.net/stocks/charts/TSLA/tesla/balance-sheet?freq=Q",
                                           adblock_path="static/adblock4.43.0_0.crx")
-    selenium_funcs.accept_cookies(browser)
+    main(browser)
 
-    #selenium_funcs.parse_table(browser)
+    #sf.accept_cookies(browser)
+
+    #sf.parse_table(browser)
     #t = extract_all_tables(browser, "V")
-    x = extract_all_tables(browser)
-    selenium_funcs.find_ticker(browser, "V")
-    # g,h = selenium_funcs.parse_table_bs(browser)
+    #x = extract_all_tables(browser)
+    #sf.find_ticker(browser, "V")
+    # g,h = sf.parse_table_bs(browser)
     # t = tm.reconstruct_table(g, h)
 
-    
-    
 # from timeit import Timer
 # import re
 # style = "left: 790px; z-index: 738; width: 100px;"
