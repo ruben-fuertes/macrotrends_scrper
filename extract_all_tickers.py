@@ -3,9 +3,11 @@ To do so, all the possible combinations of three leters of the alphabet are
 inputed in the search box and the results can be parsed and stored into the db."""
 
 import itertools
+import time
 import pandas as pd
 from db import ConnexionHandler
-#import selenium_funcs
+import selenium_funcs
+from selenium_funcs import TimeoutException
 
 
 def create_letter_combinations():
@@ -35,23 +37,86 @@ def refresh_letter_table():
     con_han.df_to_database(df, "letter_combinations", if_exists="append")
 
 
-def extract_tickers():
+def extract_letters():
+    """Extract the not yet processed letter combinations."""
+    con_han = ConnexionHandler()
+    query ="""
+    SELECT * FROM letter_combinations
+    """
+    return con_han.query_database(query, query_type='r')
+
+
+def insert_or_update_ticker(ticker, ticker_desc):
+    """Take a ticker and its ticker_desc and use them
+    to insert or update the ticker table."""
+    con_han = ConnexionHandler()
+    query = f"""
+    INSERT INTO tickers (ticker, ticker_desc)
+    VALUES 
+        ('{ticker}', '{ticker_desc}')
+    ON DUPLICATE KEY UPDATE
+        ticker = '{ticker}',
+        ticker_desc = '{ticker_desc}'
+        
+    
+    """
+    con_han.query_database(query, query_type='e')
+
+
+def update_letter_table(combination):
+    """Set the combination to checked = 1."""
+    con_han = ConnexionHandler()
+    query=f"""
+    UPDATE letter_combinations
+    SET 
+        checked = 1
+    WHERE
+        letter_combination='{combination}'
+    """
+    con_han.query_database(query, query_type='e')
+
+
+def extract_tickers_db():
     """Extract all the tickers already present in the DB."""
     con_han = ConnexionHandler()
     query ="""
     SELECT ticker FROM tickers
-    WHERE ticker_desc IS NOT NULL
     """
     return con_han.query_database(query, query_type='r')
 
 
-def extract_processed_letters():
-    """Extract the already processed letter combinations."""
-    con_han = ConnexionHandler()
-    query ="""
-    SELECT letter_combination FROM letter_combinations
-    WHERE checked = 1
-    """
-    return con_han.query_database(query, query_type='r')
+def loop_letters(driver):
+    """Loop the letter combinations using them as input to extract the
+    tickers. Skip the already processed letter groups."""
+    processed = set(extract_tickers_db().ticker)
+    let_combs = extract_letters()
+    all_combs = len(extract_letters())
+    letters_to_process = list(let_combs[let_combs["checked"] == 0].letter_combination)
+    already_checked = len(let_combs[let_combs["checked"] == 1].letter_combination)
+
+    for letter_group in letters_to_process:
+        selenium_funcs.input_ticker(driver, letter_group)
+        time.sleep(1)
+        try:
+            tickers = selenium_funcs.extract_tickers(driver)
+        except TimeoutException:
+            tickers = {}
+            pass
+
+        for ticker in tickers:
+            if ticker not in processed:
+                insert_or_update_ticker(ticker, tickers[ticker])
+                processed.add(ticker)
+
+        update_letter_table(letter_group)
+        already_checked += 1
+        print(f"{letter_group}: --- Progress = {already_checked/all_combs * 100:.2f}%" )
 
 
+
+if __name__ == '__main__':
+    browser = selenium_funcs.start_driver(base_page="https://www.macrotrends.net/stocks/charts/TSLA/tesla/balance-sheet?freq=Q",
+                                          adblock_path="static/adblock4.43.0_0.crx")
+    selenium_funcs.accept_cookies(browser)
+    
+    loop_letters(browser)

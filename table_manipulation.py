@@ -107,6 +107,7 @@ def postprocess_tables(tables, ticker):
     final_table = combine_financial_tables(tables)
     add_ticker_col(final_table, ticker)
     clean_cols(final_table)
+    return final_table
 
 
 def extract_yq(date_str):

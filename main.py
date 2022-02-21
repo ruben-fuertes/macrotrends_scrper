@@ -1,9 +1,6 @@
 import selenium_funcs
+import db
 import table_manipulation as tm
-
-
-
-
 
 def extract_all_tables(driver):
     """Extract and process all tables for the current page."""
@@ -22,17 +19,37 @@ def extract_all_tables(driver):
     return tables
 
 
+def main():
+    browser = selenium_funcs.start_driver(base_page="https://www.macrotrends.net/stocks/charts/TSLA/tesla/balance-sheet?freq=Q",
+                                          adblock_path="static/adblock4.43.0_0.crx")
+    cnx = db.ConnexionHandler()
+    selenium_funcs.accept_cookies(browser)
+    tickers = set(db.get_tickers().ticker)
+
+    for ticker in tickers:
+        if not selenium_funcs.ticker_url(browser, ticker):
+            continue
+        last_date = selenium_funcs. exctract_last_date(browser)
+        year, quarter = tm.extract_yq(last_date)
+        
+        if not db.ticker_processed(ticker, year, quarter):
+            t = tm.postprocess_tables(extract_all_tables(browser), ticker)
+            cnx.df_to_database(t, 'macro_trends', if_exists='append')
+            
+        break
+        
 
 
 if __name__ == '__main__':
 
+    
     browser = selenium_funcs.start_driver(base_page="https://www.macrotrends.net/stocks/charts/TSLA/tesla/balance-sheet?freq=Q",
                                           adblock_path="static/adblock4.43.0_0.crx")
     selenium_funcs.accept_cookies(browser)
 
     #selenium_funcs.parse_table(browser)
     #t = extract_all_tables(browser, "V")
-    x = extract_all_tables(browser, "V")
+    x = extract_all_tables(browser)
     selenium_funcs.find_ticker(browser, "V")
     # g,h = selenium_funcs.parse_table_bs(browser)
     # t = tm.reconstruct_table(g, h)

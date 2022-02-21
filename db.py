@@ -67,3 +67,29 @@ class ConnexionHandler:
 
             return df.to_sql(name=sql_table, con=cnx, if_exists=if_exists, 
                              index=False)
+
+
+def get_tickers():
+    """Return the tickets and their description."""
+    con_han = ConnexionHandler()
+    query ="""
+    SELECT ticker, ticker_desc FROM tickers
+    """
+    return con_han.query_database(query, query_type='r')
+
+
+def ticker_processed(ticker, year, quarter):
+    """Check if the combination ticker/date(year, quarter) is 
+    already in the database."""
+    con_han = ConnexionHandler()
+    query =f"""
+    SELECT ticker FROM macro_trends
+    WHERE
+    ticker='{ticker}'
+    AND year = {year}
+    AND quarter_number = {quarter}
+    """
+    if con_han.query_database(query, query_type='r').empty:
+        return False
+    return True
+    

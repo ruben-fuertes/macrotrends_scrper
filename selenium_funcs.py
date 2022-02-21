@@ -1,3 +1,4 @@
+import time
 from selenium import webdriver
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
@@ -8,7 +9,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 from utilities import chrome_appdata_folder
 from exceptions import TableParsingError
 from bs4 import BeautifulSoup
-import re
 
 
 def start_driver(app_name="macrotrends", download_folder=None, base_page=None, adblock_path=None):
@@ -61,12 +61,14 @@ def find_ticker(driver, ticker):
     search_box = WebDriverWait(driver, 1).until(
         EC.presence_of_element_located((By.ID, "jqxInput"))
     )
+    search_box.clear()
     search_box.send_keys(ticker)
 
     # Loop the child elements that appeared
     popup = WebDriverWait(driver, 1).until(
         EC.presence_of_element_located((By.ID, "jqxInput_popup"))
     )
+    time.sleep(1)
     for li in popup.find_elements(By.XPATH, "./li"):
         data_value = li.get_attribute("data-value")
         li_ticker = data_value.split("/")[0]
@@ -231,6 +233,7 @@ def input_ticker(driver, ticker):
     search_box = WebDriverWait(driver, 1).until(
         EC.presence_of_element_located((By.ID, "jqxInput"))
     )
+    search_box.clear()
     search_box.send_keys(ticker)
 
 
@@ -247,3 +250,11 @@ def extract_tickers(driver):
         tickers[li_ticker] = data_value.split("/")[1]
 
     return tickers
+
+
+def ticker_url(driver, ticker):
+    """Go to the ticker page building the URL."""
+    driver.get(f"https://www.macrotrends.net/stocks/charts/{ticker}//income-statement?freq=Q")
+    if "Error Code: 404" in driver.page_source:
+        return False
+    return True

@@ -62,7 +62,7 @@ CREATE TABLE macro_trends (
   cost_of_goods_sold FLOAT,
   gross_profit BIGINT,
   research_and_development_expenses FLOAT,
-  sga_expenses BIGINT,
+  sg_a_expenses BIGINT,
   other_operating_income_or_expenses BIGINT,
   operating_expenses BIGINT,
   operating_income BIGINT,
