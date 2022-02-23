@@ -254,6 +254,7 @@ def extract_tickers(driver):
 def ticker_url(driver, ticker):
     """Go to the ticker page building the URL."""
     driver.get(f"https://www.macrotrends.net/stocks/charts/{ticker}//income-statement?freq=Q")
+
     if "Error Code: 404" in driver.page_source:
         return False
     if not driver.current_url.endswith("?freq=Q"):
@@ -262,7 +263,9 @@ def ticker_url(driver, ticker):
 
 
 def check_for_empty_table(driver):
-    """Check if the current page has an empty table."""
+    """Check if the current page has an empty table or page source."""
+    if driver.page_source == "<html><head></head><body></body></html>":
+        return True
     # Find the table
     table = WebDriverWait(driver, 5).until(
             EC.presence_of_element_located((By.ID, "contentjqxgrid")))

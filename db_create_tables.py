@@ -106,9 +106,10 @@ CREATE TABLE macro_trends (
 """
 
 tickers_table_query = """
-CREATE TABLE ticker (
+CREATE TABLE tickers (
     ticker VARCHAR(12) NOT NULL,
     ticker_desc VARCHAR(100),
+    macro_trends_last_processed TIMESTAMP,
     PRIMARY KEY (ticker)
     ) DEFAULT CHARSET=utf8mb4
 """

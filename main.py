@@ -3,38 +3,48 @@ import selenium_funcs as sf
 import db
 import table_manipulation as tm
 from utilities import setup_loggers
+from exceptions import EmptyPageError
 
 
 def extract_all_tables(driver):
     """Extract and process all tables for the current page."""
     tables = {}
 
-    for subtab in ("Income Statement", 
-                   "Balance Sheet", 
+    for subtab in ("Income Statement",
+                   "Balance Sheet",
                    "Cash Flow Statement",
                    "Key Financial Ratios"):
 
-        sf.choose_subtab(driver, subtab)
         sf.quarterly(driver)
+        sf.choose_subtab(driver, subtab)
+        if sf.check_for_empty_table(driver):
+            raise EmptyPageError
         g,h = sf.parse_table_bs(driver)
         tables[subtab] = tm.reconstruct_table(g, h)
 
     return tables
 
 
-def main(driver):
+def main(driver, days_from_last_update=0):
+    """Main func."""
     log1,log2 = setup_loggers()
 
     cnx = db.ConnexionHandler()
     sf.accept_cookies(driver)
     tickers = set(db.get_tickers().ticker)
+    processed = db.tickers_data_last_n_days(days_from_last_update)
+
+    # Remove the tickers already in the database
+    tickers = tickers.difference(processed)
 
     for ticker in tickers:
+        # Update the last processed date
+        db.update_last_processed_date(ticker)
         log1.info(f"Processing ticker: {ticker}")
         if not sf.ticker_url(driver, ticker):
             log1.info("Skpipping: ticker not in macrotrends.")
             continue
-        elif sf.check_for_empty_table(driver):
+        if sf.check_for_empty_table(driver):
             log1.info("Skpipping: ticker has an empty table in macrotrends.")
             continue
 
@@ -42,7 +52,12 @@ def main(driver):
         last_processed = db.last_processed_date(ticker)
 
         if not last_date == last_processed:
-            t = tm.postprocess_tables(extract_all_tables(driver), ticker)
+            try:
+                t = tm.postprocess_tables(extract_all_tables(driver), ticker)
+            except EmptyPageError:
+                log2.exception(f"Processing ticker: {ticker} rised an error.")
+                log1.error(f"Processing ticker: {ticker} rised an EmptyPageError error.")
+                continue
             if last_processed != (0, 0):
                 # Filter the df to keep only the additions
                 date_filter = last_processed[0] * 100 + last_processed[1]
@@ -58,10 +73,12 @@ def main(driver):
             log1.info("Skipping: it's already in the DB.")
 
 
+
+
 if __name__ == '__main__':
     browser = sf.start_driver(base_page="https://www.macrotrends.net/stocks/charts/TSLA/tesla/balance-sheet?freq=Q",
                                           adblock_path="static/adblock4.43.0_0.crx")
-    main(browser)
+    main(browser, days_from_last_update=20)
 
     #sf.accept_cookies(browser)
 

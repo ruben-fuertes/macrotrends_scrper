@@ -76,12 +76,14 @@ def update_letter_table(combination):
     con_han.query_database(query, query_type='e')
 
 
-def extract_tickers_db():
+def extract_tickers_db(only_null_desc=False):
     """Extract all the tickers already present in the DB."""
     con_han = ConnexionHandler()
     query ="""
     SELECT ticker FROM tickers
     """
+    if only_null_desc:
+        query += " WHERE ticker_desc IS NULL "
     return con_han.query_database(query, query_type='r')
 
 
@@ -113,10 +115,23 @@ def loop_letters(driver):
         print(f"{letter_group}: --- Progress = {already_checked/all_combs * 100:.2f}%" )
 
 
+def check_old_tickers(driver):
+    """Check if the tickers already present in the DB are in macro_trends.
+    Maybe some of them were not found by the letter combinations 
+    (search engine not always work)."""
+    tickers_missing_desc = set(extract_tickers_db(only_null_desc=True).ticker)
+    for ticker in tickers_missing_desc:
+        if selenium_funcs.ticker_url(driver, ticker):
+            url = driver.current_url.split('/')
+            index = url.index(ticker) + 1
+            desc = url[index]
+            insert_or_update_ticker(ticker, desc)
+
 
 if __name__ == '__main__':
     browser = selenium_funcs.start_driver(base_page="https://www.macrotrends.net/stocks/charts/TSLA/tesla/balance-sheet?freq=Q",
                                           adblock_path="static/adblock4.43.0_0.crx")
     selenium_funcs.accept_cookies(browser)
     
-    loop_letters(browser)
+    #loop_letters(browser)
+    check_old_tickers(browser)

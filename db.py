@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy.sql import text
 import paramiko
@@ -113,3 +114,30 @@ def last_processed_date(ticker):
         return 0, 0
 
     return df.year[0], df.quarter_number[0]
+
+
+def tickers_data_last_n_days(days):
+    """Return the tickers present in the database whose last processed date is 
+    greater than the number of "days"" from now."""
+    con_han = ConnexionHandler()
+    query =f"""
+    SELECT ticker
+    FROM tickers
+    WHERE
+    DATEDIFF(macro_trends_last_processed, NOW()) <= {days}
+    """
+
+    return set(con_han.query_database(query, query_type='r').ticker)
+
+
+def update_last_processed_date(ticker):
+    """Sets the last processed date to now."""
+    con_han = ConnexionHandler()
+    query =f"""
+    UPDATE tickers SET
+    macro_trends_last_processed = NOW()
+    WHERE
+    ticker in ('{ticker}')
+    """
+    return con_han.query_database(query, query_type='e')
+
